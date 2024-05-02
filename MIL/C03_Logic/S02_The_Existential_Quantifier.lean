@@ -4,31 +4,32 @@ import Mathlib.Data.Real.Basic
 set_option autoImplicit true
 
 namespace C03S02
-
+--- 첫번째 풀이 ---
 example : ∃ x : ℝ, 2 < x ∧ x < 3 := by
   use 5 / 2
   norm_num
-
+--- 두번째 풀이 ---
 example : ∃ x : ℝ, 2 < x ∧ x < 3 := by
   have h1 : 2 < (5 : ℝ) / 2 := by norm_num
   have h2 : (5 : ℝ) / 2 < 3 := by norm_num
   use 5 / 2, h1, h2
-
+--- 세번째 풀이 : use는 사용가능한 가정이 있으면 자동적으로 적용
 example : ∃ x : ℝ, 2 < x ∧ x < 3 := by
   have h : 2 < (5 : ℝ) / 2 ∧ (5 : ℝ) / 2 < 3 := by norm_num
   use 5 / 2
-
+--- 네번째 풀이 ---
 example : ∃ x : ℝ, 2 < x ∧ x < 3 :=
   have h : 2 < (5 : ℝ) / 2 ∧ (5 : ℝ) / 2 < 3 := by norm_num
   ⟨5 / 2, h⟩
-
+--- 다섯번째 풀이 : by가 없기 때문에 explicit하게 증명해야함
+-- <>는 주어진 데이터들을 같이 넣어서 현재 goal에 맞게 적용
 example : ∃ x : ℝ, 2 < x ∧ x < 3 :=
   ⟨5 / 2, by norm_num⟩
 
-def FnUb (f : ℝ → ℝ) (a : ℝ) : Prop :=
+def FnUb (f : ℝ → ℝ) (a : ℝ) : Prop :=  --- upper bound
   ∀ x, f x ≤ a
 
-def FnLb (f : ℝ → ℝ) (a : ℝ) : Prop :=
+def FnLb (f : ℝ → ℝ) (a : ℝ) : Prop :=  --- lower bound
   ∀ x, a ≤ f x
 
 def FnHasUb (f : ℝ → ℝ) :=
@@ -50,12 +51,19 @@ example (ubf : FnHasUb f) (ubg : FnHasUb g) : FnHasUb fun x ↦ f x + g x := by
   rcases ubg with ⟨b, ubgb⟩
   use a + b
   apply fnUb_add ubfa ubgb
-
+-- intro + exact로 변형 가능
 example (lbf : FnHasLb f) (lbg : FnHasLb g) : FnHasLb fun x ↦ f x + g x := by
-  sorry
+  rcases lbf with ⟨a, lbfa⟩
+  rcases lbg with ⟨b, lbgb⟩
+  use a + b
+  intro x
+  exact add_le_add (lbfa x) (lbgb x)
 
 example {c : ℝ} (ubf : FnHasUb f) (h : c ≥ 0) : FnHasUb fun x ↦ c * f x := by
-  sorry
+  rcases ubf with ⟨a, ubfa⟩
+  use c * a
+  intro x
+  exact mul_le_mul_of_nonneg_left (ubfa x) h
 
 example : FnHasUb f → FnHasUb g → FnHasUb fun x ↦ f x + g x := by
   rintro ⟨a, ubfa⟩ ⟨b, ubgb⟩
@@ -70,6 +78,7 @@ example (ubf : FnHasUb f) (ubg : FnHasUb g) : FnHasUb fun x ↦ f x + g x := by
   obtain ⟨a, ubfa⟩ := ubf
   obtain ⟨b, ubgb⟩ := ubg
   exact ⟨a + b, fnUb_add ubfa ubgb⟩
+
 
 example (ubf : FnHasUb f) (ubg : FnHasUb g) : FnHasUb fun x ↦ f x + g x := by
   cases ubf
@@ -127,9 +136,16 @@ example (divab : a ∣ b) (divbc : b ∣ c) : a ∣ c := by
   rcases divbc with ⟨e, ceq⟩
   rw [ceq, beq]
   use d * e; ring
+--- rw을 합쳐서 다음과 같이 작성할 수 있음 ---
+example (divab : a ∣ b) (divbc : b ∣ c) : a ∣ c := by
+  rcases divab with ⟨d, rfl⟩
+  rcases divbc with ⟨e, rfl⟩
+  use d * e; ring
 
 example (divab : a ∣ b) (divac : a ∣ c) : a ∣ b + c := by
-  sorry
+  rcases divab with ⟨d, rfl⟩
+  rcases divac with ⟨e, rfl⟩
+  use d + e; ring
 
 end
 
@@ -142,8 +158,16 @@ example {c : ℝ} : Surjective fun x ↦ x + c := by
   use x - c
   dsimp; ring
 
+--- 첫번째 풀이 ---
 example {c : ℝ} (h : c ≠ 0) : Surjective fun x ↦ c * x := by
-  sorry
+  intro x
+  use x / c
+  dsimp; rw [mul_div_cancel' _ h]
+--- 두번째 풀이 ---
+example {c : ℝ} (h : c ≠ 0) : Surjective fun x ↦ c * x := by
+  intro x
+  use x / c
+  field_simp [h] ; ring
 
 example (x y : ℝ) (h : x - y ≠ 0) : (x ^ 2 - y ^ 2) / (x - y) = x + y := by
   field_simp [h]
@@ -163,6 +187,9 @@ variable {α : Type*} {β : Type*} {γ : Type*}
 variable {g : β → γ} {f : α → β}
 
 example (surjg : Surjective g) (surjf : Surjective f) : Surjective fun x ↦ g (f x) := by
-  sorry
+  intro z
+  rcases surjg z with ⟨y, rfl⟩
+  rcases surjf y with ⟨x, rfl⟩
+  use x
 
 end

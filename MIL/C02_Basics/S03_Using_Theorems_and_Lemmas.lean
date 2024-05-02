@@ -23,6 +23,8 @@ example (x y z : ℝ) (h₀ : x ≤ y) (h₁ : y ≤ z) : x ≤ z := by
   · apply h₀
   . apply h₁
 
+#check le_trans
+
 example (x y z : ℝ) (h₀ : x ≤ y) (h₁ : y ≤ z) : x ≤ z := by
   apply le_trans h₀
   apply h₁
@@ -44,7 +46,9 @@ example (x : ℝ) : x ≤ x :=
 
 -- Try this.
 example (h₀ : a ≤ b) (h₁ : b < c) (h₂ : c ≤ d) (h₃ : d < e) : a < e := by
-  sorry
+  apply lt_of_le_of_lt h₀  -- b < e
+  apply lt_trans h₁  -- c < e
+  exact lt_of_le_of_lt h₂ h₃
 
 example (h₀ : a ≤ b) (h₁ : b < c) (h₂ : c ≤ d) (h₃ : d < e) : a < e := by
   linarith
@@ -81,26 +85,32 @@ example (h : a ≤ b) : exp a ≤ exp b := by
   exact h
 
 example (h₀ : a ≤ b) (h₁ : c < d) : a + exp c + e < b + exp d + e := by
-  apply add_lt_add_of_lt_of_le
-  · apply add_lt_add_of_le_of_lt h₀
-    apply exp_lt_exp.mpr h₁
-  apply le_refl
+  apply add_lt_add_of_lt_of_le  -- (a + exp c) + e < (b + exp d) + e 이므로, a + exp c < b + exp d이고 e ≤ e
+  apply add_lt_add_of_le_of_lt h₀  -- exp c < exp d (e ≤ e는 그대로)
+  apply exp_lt_exp.mpr h₁  -- c < d 해결 (e ≤ e는 그대로)
+  apply le_refl  -- e ≤ e
 
-example (h₀ : d ≤ e) : c + exp (a + d) ≤ c + exp (a + e) := by sorry
+example (h₀ : d ≤ e) : c + exp (a + d) ≤ c + exp (a + e) := by
+  apply add_le_add_left
+  apply exp_le_exp.mpr
+  apply add_le_add_left
+  exact h₀
 
 example : (0 : ℝ) < 1 := by norm_num
 
 example (h : a ≤ b) : log (1 + exp a) ≤ log (1 + exp b) := by
-  have h₀ : 0 < 1 + exp a := by sorry
+  have h₀ : 0 < 1 + exp a := by
+    linarith [exp_pos a]
   apply log_le_log h₀
-  sorry
+  apply add_le_add_left (exp_le_exp.mpr h)
 
 example : 0 ≤ a ^ 2 := by
   -- apply?
   exact sq_nonneg a
 
 example (h : a ≤ b) : c - exp b ≤ c - exp a := by
-  sorry
+  apply sub_le_sub_left
+  apply exp_le_exp.mpr h
 
 example : 2 * a * b ≤ a ^ 2 + b ^ 2 := by
   have h : 0 ≤ a ^ 2 - 2 * a * b + b ^ 2
@@ -120,8 +130,29 @@ example : 2 * a * b ≤ a ^ 2 + b ^ 2 := by
     _ ≥ 0 := by apply pow_two_nonneg
   linarith
 
+section
+theorem fact1 : a * b * 2 ≤ a ^ 2 + b ^ 2 := by
+  have h : 0 ≤ a ^ 2 - 2 * a * b + b ^ 2
+  calc
+    a ^ 2 - 2 * a * b + b ^ 2 = (a - b) ^ 2 := by ring
+    _ ≥ 0 := by apply pow_two_nonneg
+  linarith
+
+theorem fact2 : -(a * b) * 2 ≤ a ^ 2 + b ^ 2 := by
+  have h : 0 ≤ a ^ 2 + 2 * a * b + b ^ 2
+  calc
+    a ^ 2 + 2 * a * b + b ^ 2 = (a + b) ^ 2 := by ring
+    _ ≥ 0 := by apply pow_two_nonneg
+  linarith
+
 example : |a * b| ≤ (a ^ 2 + b ^ 2) / 2 := by
-  sorry
+  have h : (0 : ℝ) < 2 := by norm_num
+  apply abs_le'.mpr
+  constructor
+  · rw [le_div_iff h]
+    apply fact1
+  rw [le_div_iff h]
+  apply fact2
+end
 
 #check abs_le'.mpr
-
